@@ -105,8 +105,29 @@
       gap: 8px;
     }
 
-    .layers-signal { grid-template-columns: repeat(4, 1fr); }
-    .layers-life   { grid-template-columns: repeat(3, 1fr); }
+    .layers-geo    { grid-template-columns: repeat(3, 1fr); }
+    .layers-bio    { grid-template-columns: repeat(2, 1fr); }
+
+    .eco-row   { display: grid; grid-template-columns: 3fr 2fr; gap: 8px; }
+    .eco-group { display: flex; flex-direction: column; gap: 6px; }
+    .group-title {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #cc2828;
+    }
+    .group-title span { color: #6a5050; font-size: 10px; letter-spacing: 0.12em; margin-left: 10px; }
+
+    .netgain { display: flex; flex-direction: column; gap: 6px; }
+    .netgain-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .netgain-row input { flex: 1; min-width: 120px; }
+    .netgain-end {
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #6a5050;
+      white-space: nowrap;
+    }
 
     .section-divider {
       border: none;
@@ -542,7 +563,8 @@
 
       /* Layer grids: 5 cols → 3, signal 4 cols → 2 */
       .layers         { grid-template-columns: repeat(3, 1fr); }
-      .layers-signal  { grid-template-columns: repeat(2, 1fr); }
+      .eco-row        { grid-template-columns: 1fr; }
+      .layers-bio     { grid-template-columns: repeat(2, 1fr); }
 
       /* Controls: 4 cols → 2×2 */
       .controls-row { grid-template-columns: 1fr 1fr; }
@@ -601,128 +623,170 @@
 
 <main>
 
-  <!-- ---- Core layers ---- -->
-  <div class="layers">
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Drone</span><span class="layer-val" id="val-drone">20</span></div>
-      <span class="layer-blurb">Fundamental pitch: slowly drifting in and out of tune with itself</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-drone" min="0" max="100" value="20">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-drone" min="-100" max="100" value="0">
-      <span id="pan-val-drone" class="pan-val-center">C</span>
+  <!-- ---- Net Gain: one control from degradation to net gain ---- -->
+  <div class="netgain">
+    <div class="netgain-row">
+      <span class="layer-name">Net Gain</span>
+      <span class="netgain-end">Degradation</span>
+      <input type="range" id="netgain" min="0" max="100" value="50">
+      <span class="netgain-end">Net Gain</span>
+      <span class="layer-val" id="val-netgain">50</span>
     </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Texture</span><span class="layer-val" id="val-texture">0</span></div>
-      <span class="layer-blurb">Filtered noise: air, breath and presence</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-texture" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-texture" min="-100" max="100" value="0">
-      <span id="pan-val-texture" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Tones</span><span class="layer-val" id="val-tones">0</span></div>
-      <span class="layer-blurb">Melodic notes: appear and fade slowly, never repeating</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-tones" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-tones" min="-100" max="100" value="0">
-      <span id="pan-val-tones" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Rumble</span><span class="layer-val" id="val-movement">0</span></div>
-      <span class="layer-blurb">Low rumble with tremolo: water, wind, space breathing</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-movement" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-movement" min="-100" max="100" value="0">
-      <span id="pan-val-movement" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Arpeggio</span><span class="layer-val" id="val-arpeggio">0</span></div>
-      <span class="layer-blurb">Sequenced notes: cycling through the scale, turn up to activate</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-arpeggio" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-arpeggio" min="-100" max="100" value="0">
-      <span id="pan-val-arpeggio" class="pan-val-center">C</span>
+    <div class="netgain-row">
+      <span class="panel-label">Controls</span>
+      <div class="btn-row">
+        <div class="btn active" data-netgain-mode="life">Birds, Insects, Machine</div>
+        <div class="btn" data-netgain-mode="all">All generators</div>
+      </div>
     </div>
   </div>
 
   <hr class="section-divider">
 
-  <!-- ---- Signal layers ---- -->
-  <div class="layers layers-signal">
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Modem</span><span class="layer-val" id="val-modem">0</span></div>
-      <span class="layer-blurb">Dial-up sequence: dial tone, DTMF, carrier squeal, data burst</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-modem" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-modem" min="-100" max="100" value="0">
-      <span id="pan-val-modem" class="pan-val-center">C</span>
-      <button class="btn btn-trigger" id="modem-trigger">Trigger</button>
+  <!-- ---- Generators, grouped by the three layers of a soundscape ---- -->
+  <div class="eco-row">
+    <div class="eco-group">
+      <div class="group-title">Geophony <span>wind, water, weather</span></div>
+      <div class="layers layers-geo">
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Texture</span><span class="layer-val" id="val-texture">0</span></div>
+        <span class="layer-blurb">Filtered noise: air, breath and presence</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-texture" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-texture" min="-100" max="100" value="0">
+        <span id="pan-val-texture" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Wind</span><span class="layer-val" id="val-wind">0</span></div>
+        <span class="layer-blurb">Gusting air with a faint whistle, never repeating</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-wind" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-wind" min="-100" max="100" value="0">
+        <span id="pan-val-wind" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Waves</span><span class="layer-val" id="val-waves">0</span></div>
+        <span class="layer-blurb">Low wash with waves that swell, break and drain away</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-waves" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-waves" min="-100" max="100" value="0">
+        <span id="pan-val-waves" class="pan-val-center">C</span>
+      </div>
+      </div>
     </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Static</span><span class="layer-val" id="val-radio">0</span></div>
-      <span class="layer-blurb">AM static: white noise sweeping slowly through the frequency spectrum</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-radio" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-radio" min="-100" max="100" value="0">
-      <span id="pan-val-radio" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Oscillators</span><span class="layer-val" id="val-unstable">0</span></div>
-      <span class="layer-blurb">Drifting sine oscillators: aged test equipment, root-independent</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-unstable" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-unstable" min="-100" max="100" value="0">
-      <span id="pan-val-unstable" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Pulse</span><span class="layer-val" id="val-breath">0</span></div>
-      <span class="layer-blurb">Sub-bass swell: 20-second breathing cycle at the root</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-breath" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-breath" min="-100" max="100" value="0">
-      <span id="pan-val-breath" class="pan-val-center">C</span>
+    <div class="eco-group">
+      <div class="group-title">Biophony <span>living creatures</span></div>
+      <div class="layers layers-bio">
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Birds</span><span class="layer-val" id="val-birds">0</span></div>
+        <span class="layer-blurb">Curlew, redshank, oystercatcher, skylark and wren, answered from across the water</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-birds" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-birds" min="-100" max="100" value="0">
+        <span id="pan-val-birds" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Insects</span><span class="layer-val" id="val-insects">0</span></div>
+        <span class="layer-blurb">Field and meadow grasshoppers, Roesel's bush-cricket and passing bumblebees</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-insects" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-insects" min="-100" max="100" value="0">
+        <span id="pan-val-insects" class="pan-val-center">C</span>
+      </div>
+      </div>
     </div>
   </div>
 
-  <hr class="section-divider">
-
-  <!-- ---- Life and industry layers (biophony / anthrophony) ---- -->
-  <div class="layers layers-life">
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Birds</span><span class="layer-val" id="val-birds">0</span></div>
-      <span class="layer-blurb">Curlew, redshank, oystercatcher, skylark and wren, answered from across the water</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-birds" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-birds" min="-100" max="100" value="0">
-      <span id="pan-val-birds" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Insects</span><span class="layer-val" id="val-insects">0</span></div>
-      <span class="layer-blurb">Field and meadow grasshoppers, Roesel's bush-cricket and passing bumblebees</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-insects" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-insects" min="-100" max="100" value="0">
-      <span id="pan-val-insects" class="pan-val-center">C</span>
-    </div>
-    <div class="layer">
-      <div class="layer-header"><span class="layer-name">Machine</span><span class="layer-val" id="val-machine">0</span></div>
-      <span class="layer-blurb">Industrial cycle: marching thud, compactor, clank, 50 Hz mains vibration</span>
-      <span class="panel-label">Volume</span>
-      <input type="range" id="vol-machine" min="0" max="100" value="0">
-      <span class="panel-label">Pan</span>
-      <input type="range" id="pan-machine" min="-100" max="100" value="0">
-      <span id="pan-val-machine" class="pan-val-center">C</span>
+  <div class="eco-group">
+    <div class="group-title">Anthrophony <span>human and machine sound</span></div>
+    <div class="layers">
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Drone</span><span class="layer-val" id="val-drone">20</span></div>
+        <span class="layer-blurb">Fundamental pitch: slowly drifting in and out of tune with itself</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-drone" min="0" max="100" value="20">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-drone" min="-100" max="100" value="0">
+        <span id="pan-val-drone" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Tones</span><span class="layer-val" id="val-tones">0</span></div>
+        <span class="layer-blurb">Melodic notes: appear and fade slowly, never repeating</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-tones" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-tones" min="-100" max="100" value="0">
+        <span id="pan-val-tones" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Rumble</span><span class="layer-val" id="val-movement">0</span></div>
+        <span class="layer-blurb">Low rumble with tremolo: water, wind, space breathing</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-movement" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-movement" min="-100" max="100" value="0">
+        <span id="pan-val-movement" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Arpeggio</span><span class="layer-val" id="val-arpeggio">0</span></div>
+        <span class="layer-blurb">Sequenced notes: cycling through the scale, turn up to activate</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-arpeggio" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-arpeggio" min="-100" max="100" value="0">
+        <span id="pan-val-arpeggio" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Pulse</span><span class="layer-val" id="val-breath">0</span></div>
+        <span class="layer-blurb">Sub-bass swell: 20-second breathing cycle at the root</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-breath" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-breath" min="-100" max="100" value="0">
+        <span id="pan-val-breath" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Modem</span><span class="layer-val" id="val-modem">0</span></div>
+        <span class="layer-blurb">Dial-up sequence: dial tone, DTMF, carrier squeal, data burst</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-modem" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-modem" min="-100" max="100" value="0">
+        <span id="pan-val-modem" class="pan-val-center">C</span>
+        <button class="btn btn-trigger" id="modem-trigger">Trigger</button>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Static</span><span class="layer-val" id="val-radio">0</span></div>
+        <span class="layer-blurb">AM static: white noise sweeping slowly through the frequency spectrum</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-radio" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-radio" min="-100" max="100" value="0">
+        <span id="pan-val-radio" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Oscillators</span><span class="layer-val" id="val-unstable">0</span></div>
+        <span class="layer-blurb">Drifting sine oscillators: aged test equipment, root-independent</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-unstable" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-unstable" min="-100" max="100" value="0">
+        <span id="pan-val-unstable" class="pan-val-center">C</span>
+      </div>
+      <div class="layer">
+        <div class="layer-header"><span class="layer-name">Machine</span><span class="layer-val" id="val-machine">0</span></div>
+        <span class="layer-blurb">Industrial cycle: marching thud, compactor and clank over a 100 Hz transformer hum</span>
+        <span class="panel-label">Volume</span>
+        <input type="range" id="vol-machine" min="0" max="100" value="0">
+        <span class="panel-label">Pan</span>
+        <input type="range" id="pan-machine" min="-100" max="100" value="0">
+        <span id="pan-val-machine" class="pan-val-center">C</span>
+      </div>
     </div>
   </div>
 
@@ -831,8 +895,9 @@ const state = {
   running: false,
   root: 'C',
   preset: 'neutral',
-  volumes: { drone:20, texture:0, tones:0, movement:0, arpeggio:0, modem:0, radio:0, unstable:0, breath:0, birds:0, insects:0, machine:0 },
-  pans:    { drone:0,  texture:0, tones:0, movement:0, arpeggio:0, modem:0, radio:0, unstable:0, breath:0, birds:0, insects:0, machine:0 },
+  volumes: { drone:20, texture:0, tones:0, movement:0, arpeggio:0, modem:0, radio:0, unstable:0, breath:0, birds:0, insects:0, machine:0, wind:0, waves:0 },
+  pans:    { drone:0,  texture:0, tones:0, movement:0, arpeggio:0, modem:0, radio:0, unstable:0, breath:0, birds:0, insects:0, machine:0, wind:0, waves:0 },
+  netGainMode: 'life',
   density: 40,
   reverbWet: 65,
   arpRate: 8,
@@ -847,6 +912,7 @@ let modemTimer = null;
 let birdTimer = null;
 let insectTimer = null;
 let birdBusyUntil = 0;
+let waveTimer = null;
 
 // Per-layer gain scaling: pure and high-pitched tones are perceptually loud,
 // so their faders top out lower than the noise and bass layers.
@@ -1097,8 +1163,45 @@ async function buildNodes() {
   }, 0.25));
   machineLoop.start(0);
 
+  // WIND (geophony, root-independent). Noise through a band-pass filter whose
+  // centre drifts, shaped by two slow swells at unrelated rates so the gusts
+  // never repeat exactly. A narrow filter adds a faint whistle, as when wind
+  // catches an edge.
+  const windGain = keep(new Tone.Gain(state.volumes.wind / 100));
+  const windPan  = keep(new Tone.Panner(state.pans.wind)); windGain.chain(windPan, masterGain);
+  const windNoise = keep(new Tone.Noise('pink'));
+  const windBPF   = keep(new Tone.Filter({ type: 'bandpass', frequency: 600, Q: 0.9 }));
+  const windGustA = keep(new Tone.Gain(0));
+  const windGustB = keep(new Tone.Gain(0));
+  windNoise.chain(windBPF, windGustA, windGustB, windGain);
+  keep(new Tone.LFO({ frequency: 0.045, min: 250,  max: 1400 })).connect(windBPF.frequency).start();
+  keep(new Tone.LFO({ frequency: 0.09,  min: 0.25, max: 1    })).connect(windGustA.gain).start();
+  keep(new Tone.LFO({ frequency: 0.023, min: 0.4,  max: 1    })).connect(windGustB.gain).start();
+  const windWhistleBPF = keep(new Tone.Filter({ type: 'bandpass', frequency: 1100, Q: 14 }));
+  const windWhistleAmp = keep(new Tone.Gain(0));
+  windNoise.chain(windWhistleBPF, windWhistleAmp, windGain);
+  keep(new Tone.LFO({ frequency: 0.037, min: 700, max: 1700 })).connect(windWhistleBPF.frequency).start();
+  keep(new Tone.LFO({ frequency: 0.061, min: 0,   max: 1.5  })).connect(windWhistleAmp.gain).start();
+  windNoise.start();
+
+  // WAVES (geophony, root-independent). A low wash that is always there, plus
+  // single waves shaped by playWave() below: each swells as the filter opens,
+  // breaks, then drains away as the filter closes.
+  const wavesGain = keep(new Tone.Gain(state.volumes.waves / 100));
+  const wavesPan  = keep(new Tone.Panner(state.pans.waves)); wavesGain.chain(wavesPan, masterGain);
+  const waveBedNoise = keep(new Tone.Noise('brown'));
+  const waveBedLPF   = keep(new Tone.Filter({ type: 'lowpass', frequency: 350 }));
+  const waveBedAmp   = keep(new Tone.Gain(0.25));
+  waveBedNoise.chain(waveBedLPF, waveBedAmp, wavesGain);
+  const waveNoise = keep(new Tone.Noise('pink'));
+  const waveLPF   = keep(new Tone.Filter({ type: 'lowpass', frequency: 400, Q: 0.7 }));
+  const waveEnv   = keep(new Tone.Gain(0));
+  waveNoise.chain(waveLPF, waveEnv, wavesGain);
+  waveBedNoise.start(); waveNoise.start();
+
   return {
     lifeNodes, dryBus,
+    windGain, windPan, wavesGain, wavesPan, waveLPF, waveEnv,
     birdsGain, birdsPan, birdOsc, birdEnv, birdOsc2, birdEnv2,
     insectsGain, insectsPan, fieldEnv, meadowEnv, beeOsc, beeEnv, beePan,
     machineGain, machinePan,
@@ -1370,6 +1473,84 @@ function scheduleNextInsect() {
   }, rnd(2000, 8000));
 }
 
+// One wave: swells for 2-3 s, breaks, then drains away over 3-5 s.
+// Returns its length in seconds, so the next wave can follow it.
+function playWave(n) {
+  const t = Tone.now() + 0.05;
+  const rise = rnd(2, 3), fall = rnd(3, 5), peak = rnd(0.5, 1);
+  [n.waveLPF.frequency, n.waveEnv.gain].forEach(p => p.cancelScheduledValues(t));
+  n.waveLPF.frequency.setValueAtTime(400, t);
+  n.waveLPF.frequency.exponentialRampToValueAtTime(rnd(1800, 3000), t + rise);
+  n.waveLPF.frequency.exponentialRampToValueAtTime(400, t + rise + fall);
+  n.waveEnv.gain.setValueAtTime(0, t);
+  n.waveEnv.gain.linearRampToValueAtTime(peak * 0.6, t + rise * 0.85);
+  n.waveEnv.gain.linearRampToValueAtTime(peak, t + rise);
+  n.waveEnv.gain.exponentialRampToValueAtTime(0.01, t + rise + fall);
+  n.waveEnv.gain.linearRampToValueAtTime(0, t + rise + fall + 0.1);
+  return rise + fall;
+}
+
+function scheduleNextWave(delay) {
+  if (!state.running) return;
+  waveTimer = setTimeout(() => {
+    if (!state.running || !nodes) return;
+    let len = 6;
+    try { len = playWave(nodes); } catch(e) {}
+    scheduleNextWave(len * 1000 + rnd(500, 2500));
+  }, delay);
+}
+
+// ================================================================
+// NET GAIN SLIDER
+// ================================================================
+// Level of each generator at each end of the slider:
+// [full degradation, full net gain]. Positions in between are a straight
+// blend of the two. In "life" mode only Birds, Insects and Machine move;
+// in "all" mode every generator listed here follows the slider.
+const NET_GAIN_LEVELS = {
+  birds:    [0,   100],
+  insects:  [0,   100],
+  machine:  [100, 0],
+  texture:  [50,  50],
+  wind:     [0,   25],
+  waves:    [0,   25],
+  breath:   [50,  0],   // Pulse
+  movement: [50,  0],   // Rumble
+  drone:    [10,  0],
+  modem:    [1,   0],
+  radio:    [10,  0],   // Static
+  unstable: [15,  0],   // Oscillators
+  tones:    [0,   0],
+  arpeggio: [0,   0]
+};
+const NET_GAIN_LIFE = ['birds', 'insects', 'machine'];
+let netGainTouched = false;
+
+function applyNetGain(pos) {
+  document.getElementById('val-netgain').textContent = pos;
+  if (!netGainTouched) return;
+  const layers = state.netGainMode === 'all' ? Object.keys(NET_GAIN_LEVELS) : NET_GAIN_LIFE;
+  layers.forEach(layer => {
+    const [degraded, gained] = NET_GAIN_LEVELS[layer];
+    const level = Math.round(degraded + (gained - degraded) * pos / 100);
+    document.getElementById(`vol-${layer}`).value = level;
+    updateLayerVol(layer, level);
+  });
+}
+
+document.getElementById('netgain').addEventListener('input', function() {
+  netGainTouched = true;
+  applyNetGain(parseInt(this.value));
+});
+
+document.querySelectorAll('[data-netgain-mode]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.netGainMode = btn.dataset.netgainMode;
+    document.querySelectorAll('[data-netgain-mode]').forEach(b => b.classList.toggle('active', b === btn));
+    applyNetGain(parseInt(document.getElementById('netgain').value));
+  });
+});
+
 
 // ================================================================
 // CHARACTER PRESETS
@@ -1411,6 +1592,7 @@ async function start() {
     insectTimer     = setTimeout(scheduleNextInsect, 1000 + Math.random() * 3000);
     Object.keys(insectBusy).forEach(k => { insectBusy[k] = 0; });
     birdBusyUntil = 0;
+    scheduleNextWave(1000 + Math.random() * 2000);
     setStatus('running');
     document.getElementById('start-btn').classList.add('running');
     document.getElementById('start-btn').textContent = 'Stop';
@@ -1422,8 +1604,8 @@ async function start() {
 
 function stop() {
   state.running = false; state.modemPlaying = false;
-  [toneTimer, modemTimer, birdTimer, insectTimer].forEach(t => t && clearTimeout(t));
-  toneTimer = modemTimer = birdTimer = insectTimer = null;
+  [toneTimer, modemTimer, birdTimer, insectTimer, waveTimer].forEach(t => t && clearTimeout(t));
+  toneTimer = modemTimer = birdTimer = insectTimer = waveTimer = null;
   if (nodes) {
     try { nodes.masterGain.gain.rampTo(0, 1.5); nodes.dryBus.gain.rampTo(0, 1.5); } catch(e) {}
     setTimeout(destroyNodes, 2000);
@@ -1472,7 +1654,7 @@ function updateLayerPan(layer, val) {
 // ================================================================
 // MAIN GENERATOR EVENT LISTENERS
 // ================================================================
-['drone','texture','tones','movement','arpeggio','modem','radio','unstable','breath','birds','insects','machine'].forEach(layer => {
+['drone','texture','tones','movement','arpeggio','modem','radio','unstable','breath','birds','insects','machine','wind','waves'].forEach(layer => {
   document.getElementById(`vol-${layer}`).addEventListener('input', function() {
     updateLayerVol(layer, parseInt(this.value));
   });
