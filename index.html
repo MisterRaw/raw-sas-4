@@ -1003,11 +1003,20 @@ async function buildNodes() {
   const lifeNodes = [];
   const keep = (...xs) => { lifeNodes.push(...xs); return xs[0]; };
 
+  // Birds and Insects sit slightly drier than the other layers: a quarter of
+  // their signal skips the reverb and goes straight to the limiter. The dry
+  // bus matches masterGain's level and fades with it on Stop.
+  const dryBus = keep(new Tone.Gain(0.85)).connect(limiter);
+  const sendDrier = pan => {
+    pan.connect(keep(new Tone.Gain(0.75)).connect(masterGain));
+    pan.connect(keep(new Tone.Gain(0.25)).connect(dryBus));
+  };
+
   // BIRDS (biophony, root-independent). Two voices: a near bird that calls,
   // and a quieter, duller far bird that sometimes answers. Calls are shaped
   // by playBirdPhrase() below, which automates pitch and loudness.
   const birdsGain = keep(new Tone.Gain((state.volumes.birds / 100) * layerScale('birds')));
-  const birdsPan  = keep(new Tone.Panner(state.pans.birds)); birdsGain.chain(birdsPan, masterGain);
+  const birdsPan  = keep(new Tone.Panner(state.pans.birds)); birdsGain.connect(birdsPan); sendDrier(birdsPan);
   const birdEnv   = keep(new Tone.Gain(0)).connect(birdsGain);
   const birdOsc   = keep(new Tone.Oscillator({ type: 'sine', frequency: 3000 })).connect(birdEnv);
   const birdFar   = keep(new Tone.Filter({ type: 'lowpass', frequency: 3500 }));
@@ -1022,7 +1031,7 @@ async function buildNodes() {
   // slightly different rates drift in and out of step. Under them, a cicada:
   // band-passed noise buzzing at ~48 Hz, swelling and fading over ~40 s.
   const insectsGain = keep(new Tone.Gain((state.volumes.insects / 100) * layerScale('insects')));
-  const insectsPan  = keep(new Tone.Panner(state.pans.insects)); insectsGain.chain(insectsPan, masterGain);
+  const insectsPan  = keep(new Tone.Panner(state.pans.insects)); insectsGain.connect(insectsPan); sendDrier(insectsPan);
   const cricket = (freq, pulseHz, chirpHz) => {
     const osc   = keep(new Tone.Oscillator({ type: 'sine', frequency: freq }));
     const pulse = keep(new Tone.Gain(0));
@@ -1053,6 +1062,7 @@ async function buildNodes() {
     pitchDecay: 0.06, octaves: 3, oscillator: { type: 'sine' },
     envelope: { attack: 0.002, decay: 0.45, sustain: 0, release: 0.2 }
   })).connect(machineGain);
+  machineThud.volume.value = 4;
   const machineCrushLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 700, Q: 1 }));
   const machineCrush = keep(new Tone.NoiseSynth({
     noise: { type: 'brown' },
@@ -1060,26 +1070,26 @@ async function buildNodes() {
   })).chain(machineCrushLPF, machineGain);
   const machineClank = keep(new Tone.MetalSynth({
     envelope: { attack: 0.001, decay: 0.25, release: 0.1 },
-    harmonicity: 3.1, modulationIndex: 16, resonance: 1800, octaves: 1
+    harmonicity: 3.1, modulationIndex: 16, resonance: 900, octaves: 1
   })).connect(machineGain);
-  machineClank.volume.value = -18;
+  machineClank.volume.value = -24;
   const machineHum    = keep(new Tone.Oscillator({ type: 'sawtooth', frequency: 50 }));
   const machineHumLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 160 }));
   const machineHumAmp = keep(new Tone.Gain(0.12));
   machineHum.chain(machineHumLPF, machineHumAmp, machineGain);
-  keep(new Tone.LFO({ frequency: 7, min: 0.06, max: 0.18 })).connect(machineHumAmp.gain).start();
+  keep(new Tone.LFO({ frequency: 7, min: 0.03, max: 0.09 })).connect(machineHumAmp.gain).start();
   machineHum.start();
   let machineStep = 0;
   const machineLoop = keep(new Tone.Loop(time => {
     const s = machineStep++ % 8;
     if (s % 2 === 0)        machineThud.triggerAttackRelease(s === 0 ? 40 : 45, 0.3, time, s === 0 ? 1 : 0.7);
     if (s === 3 || s === 7) machineCrush.triggerAttackRelease(0.4, time, 0.6);
-    if (s === 5)            machineClank.triggerAttackRelease(90, 0.15, time, 0.6);
+    if (s === 5)            machineClank.triggerAttackRelease(45, 0.15, time, 0.6);
   }, 0.25));
   machineLoop.start(0);
 
   return {
-    lifeNodes,
+    lifeNodes, dryBus,
     birdsGain, birdsPan, birdOsc, birdEnv, birdOsc2, birdEnv2,
     insectsGain, insectsPan,
     machineGain, machinePan,
@@ -1297,7 +1307,10 @@ function stop() {
   state.running = false; state.modemPlaying = false;
   [toneTimer, modemTimer, birdTimer].forEach(t => t && clearTimeout(t));
   toneTimer = modemTimer = birdTimer = null;
-  if (nodes) { try { nodes.masterGain.gain.rampTo(0, 1.5); } catch(e) {} setTimeout(destroyNodes, 2000); }
+  if (nodes) {
+    try { nodes.masterGain.gain.rampTo(0, 1.5); nodes.dryBus.gain.rampTo(0, 1.5); } catch(e) {}
+    setTimeout(destroyNodes, 2000);
+  }
   setStatus('ready');
   document.getElementById('start-btn').classList.remove('running');
   document.getElementById('start-btn').textContent = 'Start';
