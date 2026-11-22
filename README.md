@@ -24,8 +24,8 @@ During my MA Creative Practice at the Make Happen Institute I'm developing this 
 
 - Renamed from GNOME to RAW SAS-4, at a new address.
 - Records 16-bit PCM WAV.
-- New Birds generator, modelled on Humber and Yorkshire species: curlew, redshank, oystercatcher, skylark and wren, with a distant bird of the same species that sometimes answers.
-- New Insects generator, modelled on species found in Yorkshire: common field grasshopper, meadow grasshopper, Roesel's bush-cricket and passing bumblebees.
+- New Birds generator, modelled on Humber and Yorkshire species: curlew, redshank, oystercatcher, skylark and blackbird, with a distant bird of the same species that sometimes answers.
+- New Insects generator, modelled on species found in Yorkshire: common field grasshopper, meadow grasshopper and Roesel's bush-cricket.
 - New Machine generator: industrial cycle of marching thud, compactor and clank over a transformer hum, all tied to the UK grid's 50 Hz (transformers hum at 100 Hz, twice the mains frequency; the clank is tuned to 50 Hz).
 - New Wind generator: gusting air with a faint whistle. New Waves generator: a low wash with waves that swell, break and drain away.
 - Generators regrouped into the three layers of soundscape ecology: Geophony, Biophony and Anthrophony.

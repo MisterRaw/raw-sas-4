@@ -682,7 +682,7 @@
       <div class="layers layers-bio">
       <div class="layer">
         <div class="layer-header"><span class="layer-name">Birds</span><span class="layer-val" id="val-birds">0</span></div>
-        <span class="layer-blurb">Curlew, redshank, oystercatcher, skylark and wren, answered from across the water</span>
+        <span class="layer-blurb">Curlew, redshank, oystercatcher, skylark and blackbird, answered from across the water</span>
         <span class="panel-label">Volume</span>
         <input type="range" id="vol-birds" min="0" max="100" value="0">
         <span class="panel-label">Pan</span>
@@ -691,7 +691,7 @@
       </div>
       <div class="layer">
         <div class="layer-header"><span class="layer-name">Insects</span><span class="layer-val" id="val-insects">0</span></div>
-        <span class="layer-blurb">Field and meadow grasshoppers, Roesel's bush-cricket and passing bumblebees</span>
+        <span class="layer-blurb">Field and meadow grasshoppers, and Roesel's bush-cricket</span>
         <span class="panel-label">Volume</span>
         <input type="range" id="vol-insects" min="0" max="100" value="0">
         <span class="panel-label">Pan</span>
@@ -1102,7 +1102,6 @@ async function buildNodes() {
   //  - Meadow grasshopper: brief bursts of rapid ticking
   //  - Roesel's bush-cricket: a long, very high continuous buzz, like
   //    overhead power lines; here it sings for ~16 s, then rests for ~16 s
-  //  - Bumblebee: a low wingbeat drone passing across the stereo field
   const insectsGain = keep(new Tone.Gain((state.volumes.insects / 100) * layerScale('insects')));
   const insectsPan  = keep(new Tone.Panner(state.pans.insects)); insectsGain.connect(insectsPan); sendDrier(insectsPan);
   const insectNoise = keep(new Tone.Noise('white'));
@@ -1118,12 +1117,7 @@ async function buildNodes() {
   insectNoise.chain(roeselBPF, roeselBuzz, roeselSong, insectsGain);
   keep(new Tone.LFO({ frequency: 60,   min: 0.3, max: 1,   type: 'square' })).connect(roeselBuzz.gain).start();
   keep(new Tone.LFO({ frequency: 0.03, min: 0,   max: 0.5, type: 'square' })).connect(roeselSong.gain).start();
-  const beeOsc = keep(new Tone.Oscillator({ type: 'sawtooth', frequency: 170 }));
-  const beeLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 900 }));
-  const beeEnv = keep(new Tone.Gain(0));
-  const beePan = keep(new Tone.Panner(0));
-  beeOsc.chain(beeLPF, beeEnv, beePan, insectsGain);
-  insectNoise.start(); beeOsc.start();
+  insectNoise.start();
 
   // MACHINE (anthrophony, root-independent). A rigid 8-step cycle at 0.25 s
   // per step: a thud on every other step (accented on the downbeat), a
@@ -1203,7 +1197,7 @@ async function buildNodes() {
     lifeNodes, dryBus,
     windGain, windPan, wavesGain, wavesPan, waveLPF, waveEnv,
     birdsGain, birdsPan, birdOsc, birdEnv, birdOsc2, birdEnv2,
-    insectsGain, insectsPan, fieldEnv, meadowEnv, beeOsc, beeEnv, beePan,
+    insectsGain, insectsPan, fieldEnv, meadowEnv,
     machineGain, machinePan,
     masterGain, reverb, limiter,
     droneGain, osc1, osc2, osc3, swellGain, swellLfo, dLfo1, dLfo2, dLfo3,
@@ -1370,17 +1364,28 @@ const BIRD_CALLS = {
     }
     return at - t;
   },
-  // Wren: tiny bird, huge voice; a very fast, high trill heard from the
-  // estuary edge to Bradford's gardens
-  wren(osc, env, t) {
-    let at = t, f = rnd(4500, 7000);
-    for (let i = rndInt(15, 35); i > 0; i--) {
-      if (i % 5 === 0) f = rnd(4500, 7000);
+  // Blackbird: a slow, mellow phrase of a few fluted notes that swoop up
+  // and fall away, often closing with a quiet, squeaky twitter; heard from
+  // the estuary hedges to Bradford's gardens
+  blackbird(osc, env, t) {
+    let at = t;
+    for (let i = rndInt(3, 6); i > 0; i--) {
+      const f = rnd(1300, 2600), len = rnd(0.15, 0.35), peak = rnd(0.6, 0.9);
       osc.frequency.setValueAtTime(f, at);
+      osc.frequency.exponentialRampToValueAtTime(f * rnd(1.1, 1.35), at + len * 0.4);
+      osc.frequency.exponentialRampToValueAtTime(f * rnd(0.8, 1.0), at + len);
       env.gain.setValueAtTime(0, at);
-      env.gain.linearRampToValueAtTime(0.8, at + 0.006);
-      env.gain.linearRampToValueAtTime(0, at + 0.025);
-      at += 0.035;
+      env.gain.linearRampToValueAtTime(peak, at + len * 0.25);
+      env.gain.linearRampToValueAtTime(peak * 0.7, at + len * 0.7);
+      env.gain.linearRampToValueAtTime(0, at + len);
+      at += len + rnd(0.04, 0.12);
+    }
+    if (Math.random() < 0.6) {
+      for (let i = rndInt(3, 7); i > 0; i--) {
+        const f = rnd(4000, 6500);
+        birdNote(osc, env, at, f, f * rnd(0.7, 1.3), 0.04, 0.3);
+        at += rnd(0.05, 0.08);
+      }
     }
     return at - t;
   }
@@ -1413,7 +1418,7 @@ function scheduleNextBird() {
 
 // Insect events. Each voice is skipped while it is still sounding, so a new
 // event never cuts one off mid-song. Times are on the audio clock.
-const insectBusy = { field: 0, meadow: 0, bee: 0 };
+const insectBusy = { field: 0, meadow: 0 };
 
 const INSECT_EVENTS = {
   // Common field grasshopper: a bout of short rasps about two seconds apart,
@@ -1440,25 +1445,11 @@ const INSECT_EVENTS = {
       n.meadowEnv.gain.linearRampToValueAtTime(0, at + 0.03);
     }
     return ticks * 0.066;
-  },
-  // Bumblebee: flies past, wingbeat pitch wavering, crossing left to right
-  // or right to left
-  bee(n, t) {
-    const len = rnd(3, 6), from = rnd(0.5, 0.9) * (Math.random() < 0.5 ? -1 : 1);
-    n.beeOsc.frequency.setValueAtTime(rnd(150, 190), t);
-    n.beeOsc.frequency.linearRampToValueAtTime(rnd(150, 190), t + len / 2);
-    n.beeOsc.frequency.linearRampToValueAtTime(rnd(150, 190), t + len);
-    n.beePan.pan.setValueAtTime(from, t);
-    n.beePan.pan.linearRampToValueAtTime(-from, t + len);
-    n.beeEnv.gain.setValueAtTime(0, t);
-    n.beeEnv.gain.linearRampToValueAtTime(0.5, t + len / 2);
-    n.beeEnv.gain.linearRampToValueAtTime(0, t + len);
-    return len;
   }
 };
 
 function playInsectEvent(n) {
-  const kind = Math.random() < 0.4 ? 'field' : Math.random() < 0.67 ? 'meadow' : 'bee';
+  const kind = Math.random() < 0.5 ? 'field' : 'meadow';
   const t = Tone.now() + 0.05;
   if (t < insectBusy[kind]) return;
   insectBusy[kind] = t + INSECT_EVENTS[kind](n, t);
