@@ -24,9 +24,9 @@ During my MA Creative Practice at the Make Happen Institute I'm developing this 
 
 - Renamed from GNOME to RAW SAS-4, at a new address.
 - Records 16-bit PCM WAV.
-- New Birds generator: whistles, chirps and trills, with a distant bird that sometimes answers.
-- New Insects generator: two crickets drifting in and out of step over a swelling cicada buzz.
-- New Machine generator: industrial cycle of marching thud, compactor, clank and 50 Hz mains vibration.
+- New Birds generator, modelled on Humber and Yorkshire species: curlew, redshank, oystercatcher, skylark and wren, with a distant bird of the same species that sometimes answers.
+- New Insects generator, modelled on species found in Yorkshire: common field grasshopper, meadow grasshopper, Roesel's bush-cricket and passing bumblebees.
+- New Machine generator: industrial cycle of marching thud, compactor and clank over a transformer hum, all tied to the UK grid's 50 Hz (transformers hum at 100 Hz, twice the mains frequency; the clank is tuned to 50 Hz).
 - Planned: a Net Gain slider that moves every layer between net gain and degradation.
 
 ### v0.2: GNOME (Pushed to GitHub Pages October 3rd 2026, MA Action 1)

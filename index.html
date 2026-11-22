@@ -699,7 +699,7 @@
   <div class="layers layers-life">
     <div class="layer">
       <div class="layer-header"><span class="layer-name">Birds</span><span class="layer-val" id="val-birds">0</span></div>
-      <span class="layer-blurb">Whistles, chirps and trills: near calls answered from a distance</span>
+      <span class="layer-blurb">Curlew, redshank, oystercatcher, skylark and wren, answered from across the water</span>
       <span class="panel-label">Volume</span>
       <input type="range" id="vol-birds" min="0" max="100" value="0">
       <span class="panel-label">Pan</span>
@@ -708,7 +708,7 @@
     </div>
     <div class="layer">
       <div class="layer-header"><span class="layer-name">Insects</span><span class="layer-val" id="val-insects">0</span></div>
-      <span class="layer-blurb">Two crickets drifting in and out of step over a swelling cicada buzz</span>
+      <span class="layer-blurb">Field and meadow grasshoppers, Roesel's bush-cricket and passing bumblebees</span>
       <span class="panel-label">Volume</span>
       <input type="range" id="vol-insects" min="0" max="100" value="0">
       <span class="panel-label">Pan</span>
@@ -845,10 +845,12 @@ let nodes = null;
 let toneTimer = null;
 let modemTimer = null;
 let birdTimer = null;
+let insectTimer = null;
+let birdBusyUntil = 0;
 
 // Per-layer gain scaling: pure and high-pitched tones are perceptually loud,
 // so their faders top out lower than the noise and bass layers.
-const LAYER_SCALE = { modem: 0.2, tones: 0.4, birds: 0.3, insects: 0.25 };
+const LAYER_SCALE = { modem: 0.2, tones: 0.4, birds: 0.3, insects: 0.4 };
 const layerScale = layer => LAYER_SCALE[layer] ?? 1;
 
 const ROOTS = {
@@ -1026,36 +1028,43 @@ async function buildNodes() {
   const birdOsc2  = keep(new Tone.Oscillator({ type: 'sine', frequency: 3000 })).connect(birdEnv2);
   birdOsc.start(); birdOsc2.start();
 
-  // INSECTS (biophony, root-independent). Each cricket is a high tone gated
-  // into fast pulses, grouped into chirps by a slower gate. Two crickets at
-  // slightly different rates drift in and out of step. Under them, a cicada:
-  // band-passed noise buzzing at ~48 Hz, swelling and fading over ~40 s.
+  // INSECTS (biophony, root-independent), modelled on species found in
+  // Yorkshire and the Humber. Grasshoppers and bush-crickets make sound by
+  // rubbing a leg or wing against a ridged edge, so their songs are bursts of
+  // noisy pulses rather than pure tones. Shaped by playInsectEvent() below.
+  //  - Common field grasshopper: short rasping chirps, about two seconds apart
+  //  - Meadow grasshopper: brief bursts of rapid ticking
+  //  - Roesel's bush-cricket: a long, very high continuous buzz, like
+  //    overhead power lines; here it sings for ~16 s, then rests for ~16 s
+  //  - Bumblebee: a low wingbeat drone passing across the stereo field
   const insectsGain = keep(new Tone.Gain((state.volumes.insects / 100) * layerScale('insects')));
   const insectsPan  = keep(new Tone.Panner(state.pans.insects)); insectsGain.connect(insectsPan); sendDrier(insectsPan);
-  const cricket = (freq, pulseHz, chirpHz) => {
-    const osc   = keep(new Tone.Oscillator({ type: 'sine', frequency: freq }));
-    const pulse = keep(new Tone.Gain(0));
-    const chirp = keep(new Tone.Gain(0));
-    osc.chain(pulse, chirp, insectsGain);
-    keep(new Tone.LFO({ frequency: pulseHz, min: 0, max: 1, type: 'square' })).connect(pulse.gain).start();
-    keep(new Tone.LFO({ frequency: chirpHz, min: 0, max: 1, type: 'square' })).connect(chirp.gain).start();
-    osc.start();
-  };
-  cricket(4600, 28, 1.1);
-  cricket(4300, 31, 0.83);
-  const cicadaNoise = keep(new Tone.Noise('white'));
-  const cicadaBPF   = keep(new Tone.Filter({ type: 'bandpass', frequency: 7000, Q: 3 }));
-  const cicadaBuzz  = keep(new Tone.Gain(0));
-  const cicadaSwell = keep(new Tone.Gain(0));
-  cicadaNoise.chain(cicadaBPF, cicadaBuzz, cicadaSwell, insectsGain);
-  keep(new Tone.LFO({ frequency: 48,    min: 0.2, max: 1   })).connect(cicadaBuzz.gain).start();
-  keep(new Tone.LFO({ frequency: 0.025, min: 0,   max: 0.6 })).connect(cicadaSwell.gain).start();
-  cicadaNoise.start();
+  const insectNoise = keep(new Tone.Noise('white'));
+  const fieldBPF    = keep(new Tone.Filter({ type: 'bandpass', frequency: 7500, Q: 2 }));
+  const fieldEnv    = keep(new Tone.Gain(0));
+  insectNoise.chain(fieldBPF, fieldEnv, insectsGain);
+  const meadowBPF   = keep(new Tone.Filter({ type: 'bandpass', frequency: 9000, Q: 2.5 }));
+  const meadowEnv   = keep(new Tone.Gain(0));
+  insectNoise.chain(meadowBPF, meadowEnv, insectsGain);
+  const roeselBPF   = keep(new Tone.Filter({ type: 'bandpass', frequency: 12000, Q: 4 }));
+  const roeselBuzz  = keep(new Tone.Gain(0));
+  const roeselSong  = keep(new Tone.Gain(0));
+  insectNoise.chain(roeselBPF, roeselBuzz, roeselSong, insectsGain);
+  keep(new Tone.LFO({ frequency: 60,   min: 0.3, max: 1,   type: 'square' })).connect(roeselBuzz.gain).start();
+  keep(new Tone.LFO({ frequency: 0.03, min: 0,   max: 0.5, type: 'square' })).connect(roeselSong.gain).start();
+  const beeOsc = keep(new Tone.Oscillator({ type: 'sawtooth', frequency: 170 }));
+  const beeLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 900 }));
+  const beeEnv = keep(new Tone.Gain(0));
+  const beePan = keep(new Tone.Panner(0));
+  beeOsc.chain(beeLPF, beeEnv, beePan, insectsGain);
+  insectNoise.start(); beeOsc.start();
 
   // MACHINE (anthrophony, root-independent). A rigid 8-step cycle at 0.25 s
   // per step: a thud on every other step (accented on the downbeat), a
   // compactor squeeze on steps 3 and 7, a metal clank on step 5. Under it,
-  // a 50 Hz mains hum (UK grid frequency) shaking at 7 Hz.
+  // a transformer hum. Everything is tied to the UK grid's 50 Hz: transformer
+  // cores flex twice per electrical cycle, so they hum at 100 Hz, and the
+  // clank is tuned to 50 Hz itself.
   const machineGain = keep(new Tone.Gain(state.volumes.machine / 100));
   const machinePan  = keep(new Tone.Panner(state.pans.machine)); machineGain.chain(machinePan, masterGain);
   const machineThud = keep(new Tone.MembraneSynth({
@@ -1070,11 +1079,11 @@ async function buildNodes() {
   })).chain(machineCrushLPF, machineGain);
   const machineClank = keep(new Tone.MetalSynth({
     envelope: { attack: 0.001, decay: 0.25, release: 0.1 },
-    harmonicity: 3.1, modulationIndex: 16, resonance: 900, octaves: 1
+    harmonicity: 3.1, modulationIndex: 16, resonance: 1000, octaves: 1
   })).connect(machineGain);
   machineClank.volume.value = -24;
-  const machineHum    = keep(new Tone.Oscillator({ type: 'sawtooth', frequency: 50 }));
-  const machineHumLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 160 }));
+  const machineHum    = keep(new Tone.Oscillator({ type: 'sawtooth', frequency: 100 }));
+  const machineHumLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 320 }));
   const machineHumAmp = keep(new Tone.Gain(0.12));
   machineHum.chain(machineHumLPF, machineHumAmp, machineGain);
   keep(new Tone.LFO({ frequency: 7, min: 0.03, max: 0.09 })).connect(machineHumAmp.gain).start();
@@ -1084,14 +1093,14 @@ async function buildNodes() {
     const s = machineStep++ % 8;
     if (s % 2 === 0)        machineThud.triggerAttackRelease(s === 0 ? 40 : 45, 0.3, time, s === 0 ? 1 : 0.7);
     if (s === 3 || s === 7) machineCrush.triggerAttackRelease(0.4, time, 0.6);
-    if (s === 5)            machineClank.triggerAttackRelease(45, 0.15, time, 0.6);
+    if (s === 5)            machineClank.triggerAttackRelease(50, 0.15, time, 0.6);
   }, 0.25));
   machineLoop.start(0);
 
   return {
     lifeNodes, dryBus,
     birdsGain, birdsPan, birdOsc, birdEnv, birdOsc2, birdEnv2,
-    insectsGain, insectsPan,
+    insectsGain, insectsPan, fieldEnv, meadowEnv, beeOsc, beeEnv, beePan,
     machineGain, machinePan,
     masterGain, reverb, limiter,
     droneGain, osc1, osc2, osc3, swellGain, swellLfo, dLfo1, dLfo2, dLfo3,
@@ -1190,44 +1199,85 @@ function scheduleNextModem() {
   }, rnd(15000, 35000));
 }
 
-// Bird calls. Each shapes one voice's pitch (osc) and loudness (env),
-// scheduled on the audio clock from time t, and returns its length in seconds.
+// Bird calls, each modelled on a species of the Humber Estuary and the
+// Yorkshire landscape around it. Each shapes one voice's pitch (osc) and
+// loudness (env), scheduled on the audio clock from time t, and returns its
+// length in seconds. Pitches are approximate, tuned by ear to the character
+// of each call rather than measured from recordings.
+
+// one short note: pitch glides from f1 to f2 over len seconds
+const birdNote = (osc, env, at, f1, f2, len, peak = 1) => {
+  osc.frequency.setValueAtTime(f1, at);
+  osc.frequency.exponentialRampToValueAtTime(f2, at + len);
+  env.gain.setValueAtTime(0, at);
+  env.gain.linearRampToValueAtTime(peak, at + Math.min(0.02, len / 3));
+  env.gain.linearRampToValueAtTime(0, at + len);
+};
+
 const BIRD_CALLS = {
-  // a single falling whistle
-  whistle(osc, env, t) {
-    const f = rnd(2200, 3600), len = rnd(0.25, 0.6);
-    osc.frequency.setValueAtTime(f, t);
-    osc.frequency.exponentialRampToValueAtTime(f * rnd(0.6, 0.8), t + len);
-    env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(1, t + 0.03);
-    env.gain.linearRampToValueAtTime(0, t + len);
-    return len;
-  },
-  // a run of short rising chirps
-  chirps(osc, env, t) {
-    const count = rndInt(3, 8), base = rnd(2500, 4500);
+  // Curlew: the rising "cour-lee" of the mudflats, sometimes followed by
+  // its bubbling song, a trill that speeds up as it rises
+  curlew(osc, env, t) {
     let at = t;
-    for (let i = 0; i < count; i++) {
-      const f = base * rnd(0.9, 1.1);
-      osc.frequency.setValueAtTime(f, at);
-      osc.frequency.exponentialRampToValueAtTime(f * 1.5, at + 0.05);
-      env.gain.setValueAtTime(0, at);
-      env.gain.linearRampToValueAtTime(1, at + 0.01);
-      env.gain.linearRampToValueAtTime(0, at + 0.06);
-      at += rnd(0.09, 0.16);
+    for (let i = rndInt(2, 3); i > 0; i--) {
+      birdNote(osc, env, at, rnd(1600, 1800), rnd(2400, 2700), 0.45);
+      at += 0.7;
+    }
+    if (Math.random() < 0.5) {
+      const notes = rndInt(15, 25);
+      for (let i = 0; i < notes; i++) {
+        const f = 2000 + 800 * (i / notes);
+        birdNote(osc, env, at, f, f * 1.08, 0.05, 0.8);
+        at += 0.09 - 0.04 * (i / notes);
+      }
     }
     return at - t;
   },
-  // a fast, slightly falling trill
-  trill(osc, env, t) {
-    const count = rndInt(8, 20), f = rnd(3800, 6000);
+  // Redshank: the anxious falling "tew-hu-hu" alarm, the "warden of the marsh"
+  redshank(osc, env, t) {
+    const f0 = rnd(2600, 3000);
     let at = t;
-    for (let i = 0; i < count; i++) {
-      osc.frequency.setValueAtTime(f * (1 - i * 0.008), at);
+    for (let i = rndInt(2, 4); i > 0; i--) {
+      birdNote(osc, env, at, f0 * 1.05, f0 * 0.85, 0.13);
+      at += 0.2;
+    }
+    return at - t;
+  },
+  // Oystercatcher: loud, insistent piping "kleep kleep kleep"
+  oystercatcher(osc, env, t) {
+    let at = t;
+    for (let i = rndInt(5, 12); i > 0; i--) {
+      osc.frequency.setValueAtTime(2800, at);
+      osc.frequency.exponentialRampToValueAtTime(3300, at + 0.03);
+      osc.frequency.exponentialRampToValueAtTime(2900, at + 0.09);
       env.gain.setValueAtTime(0, at);
-      env.gain.linearRampToValueAtTime(0.8, at + 0.008);
-      env.gain.linearRampToValueAtTime(0, at + 0.03);
-      at += 0.045;
+      env.gain.linearRampToValueAtTime(1, at + 0.01);
+      env.gain.linearRampToValueAtTime(0, at + 0.09);
+      at += rnd(0.13, 0.17);
+    }
+    return at - t;
+  },
+  // Skylark: a rapid, endlessly varied warble high over the saltmarsh
+  skylark(osc, env, t) {
+    let at = t;
+    for (let i = rndInt(25, 45); i > 0; i--) {
+      const f = rnd(2800, 5500), len = rnd(0.04, 0.08);
+      birdNote(osc, env, at, f, f * rnd(0.85, 1.2), len, 0.7);
+      at += len + rnd(0.01, 0.04);
+    }
+    return at - t;
+  },
+  // Wren: tiny bird, huge voice; a very fast, high trill heard from the
+  // estuary edge to Bradford's gardens
+  wren(osc, env, t) {
+    let at = t, f = rnd(4500, 7000);
+    for (let i = rndInt(15, 35); i > 0; i--) {
+      if (i % 5 === 0) f = rnd(4500, 7000);
+      osc.frequency.setValueAtTime(f, at);
+      env.gain.setValueAtTime(0, at);
+      env.gain.linearRampToValueAtTime(0.8, at + 0.006);
+      env.gain.linearRampToValueAtTime(0, at + 0.025);
+      at += 0.035;
     }
     return at - t;
   }
@@ -1237,9 +1287,11 @@ function playBirdPhrase(n) {
   const kinds = Object.keys(BIRD_CALLS);
   const call  = BIRD_CALLS[kinds[rndInt(0, kinds.length - 1)]];
   const t = Tone.now() + 0.05;
+  if (t < birdBusyUntil) return; // let a long song (skylark, curlew) finish
   [n.birdOsc.frequency, n.birdEnv.gain].forEach(p => p.cancelScheduledValues(t));
   const len = call(n.birdOsc, n.birdEnv, t);
-  // Sometimes a far bird of the same kind answers.
+  birdBusyUntil = t + len;
+  // Sometimes a far bird of the same species answers across the water.
   if (Math.random() < 0.4) {
     const t2 = t + len + rnd(0.3, 1.2);
     [n.birdOsc2.frequency, n.birdEnv2.gain].forEach(p => p.cancelScheduledValues(t2));
@@ -1254,6 +1306,68 @@ function scheduleNextBird() {
     try { playBirdPhrase(nodes); } catch(e) {}
     scheduleNextBird();
   }, rnd(1500, 7000));
+}
+
+// Insect events. Each voice is skipped while it is still sounding, so a new
+// event never cuts one off mid-song. Times are on the audio clock.
+const insectBusy = { field: 0, meadow: 0, bee: 0 };
+
+const INSECT_EVENTS = {
+  // Common field grasshopper: a bout of short rasps about two seconds apart,
+  // each rasp a quick run of ~10 scraping pulses
+  field(n, t) {
+    let at = t;
+    for (let c = rndInt(4, 8); c > 0; c--) {
+      for (let p = 0; p < 10; p++) {
+        n.fieldEnv.gain.setValueAtTime(0, at + p * 0.022);
+        n.fieldEnv.gain.linearRampToValueAtTime(1, at + p * 0.022 + 0.004);
+        n.fieldEnv.gain.linearRampToValueAtTime(0, at + p * 0.022 + 0.018);
+      }
+      at += rnd(1.6, 2.4);
+    }
+    return at - t;
+  },
+  // Meadow grasshopper: a burst of rapid ticking lasting a second or two
+  meadow(n, t) {
+    const ticks = rndInt(15, 35);
+    for (let i = 0; i < ticks; i++) {
+      const at = t + i * 0.066;
+      n.meadowEnv.gain.setValueAtTime(0, at);
+      n.meadowEnv.gain.linearRampToValueAtTime(0.8, at + 0.004);
+      n.meadowEnv.gain.linearRampToValueAtTime(0, at + 0.03);
+    }
+    return ticks * 0.066;
+  },
+  // Bumblebee: flies past, wingbeat pitch wavering, crossing left to right
+  // or right to left
+  bee(n, t) {
+    const len = rnd(3, 6), from = rnd(0.5, 0.9) * (Math.random() < 0.5 ? -1 : 1);
+    n.beeOsc.frequency.setValueAtTime(rnd(150, 190), t);
+    n.beeOsc.frequency.linearRampToValueAtTime(rnd(150, 190), t + len / 2);
+    n.beeOsc.frequency.linearRampToValueAtTime(rnd(150, 190), t + len);
+    n.beePan.pan.setValueAtTime(from, t);
+    n.beePan.pan.linearRampToValueAtTime(-from, t + len);
+    n.beeEnv.gain.setValueAtTime(0, t);
+    n.beeEnv.gain.linearRampToValueAtTime(0.5, t + len / 2);
+    n.beeEnv.gain.linearRampToValueAtTime(0, t + len);
+    return len;
+  }
+};
+
+function playInsectEvent(n) {
+  const kind = Math.random() < 0.4 ? 'field' : Math.random() < 0.67 ? 'meadow' : 'bee';
+  const t = Tone.now() + 0.05;
+  if (t < insectBusy[kind]) return;
+  insectBusy[kind] = t + INSECT_EVENTS[kind](n, t);
+}
+
+function scheduleNextInsect() {
+  if (!state.running) return;
+  insectTimer = setTimeout(() => {
+    if (!state.running || !nodes) return;
+    try { playInsectEvent(nodes); } catch(e) {}
+    scheduleNextInsect();
+  }, rnd(2000, 8000));
 }
 
 
@@ -1294,6 +1408,9 @@ async function start() {
     toneTimer       = setTimeout(scheduleNextTone,  6000  + Math.random() * 4000);
     modemTimer      = setTimeout(scheduleNextModem, 12000 + Math.random() * 8000);
     birdTimer       = setTimeout(scheduleNextBird,  2000  + Math.random() * 3000);
+    insectTimer     = setTimeout(scheduleNextInsect, 1000 + Math.random() * 3000);
+    Object.keys(insectBusy).forEach(k => { insectBusy[k] = 0; });
+    birdBusyUntil = 0;
     setStatus('running');
     document.getElementById('start-btn').classList.add('running');
     document.getElementById('start-btn').textContent = 'Stop';
@@ -1305,8 +1422,8 @@ async function start() {
 
 function stop() {
   state.running = false; state.modemPlaying = false;
-  [toneTimer, modemTimer, birdTimer].forEach(t => t && clearTimeout(t));
-  toneTimer = modemTimer = birdTimer = null;
+  [toneTimer, modemTimer, birdTimer, insectTimer].forEach(t => t && clearTimeout(t));
+  toneTimer = modemTimer = birdTimer = insectTimer = null;
   if (nodes) {
     try { nodes.masterGain.gain.rampTo(0, 1.5); nodes.dryBus.gain.rampTo(0, 1.5); } catch(e) {}
     setTimeout(destroyNodes, 2000);
