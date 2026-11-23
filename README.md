@@ -27,7 +27,7 @@ During my MA Creative Practice at the Make Happen Institute I'm developing this 
 - New Birds generator, modelled on Humber and Yorkshire species: curlew, redshank, oystercatcher, skylark and blackbird, with a distant bird of the same species that sometimes answers.
 - New Insects generator, modelled on species found in Yorkshire: common field grasshopper, meadow grasshopper and Roesel's bush-cricket.
 - New Machine generator: industrial cycle of marching thud, compactor and clank over a transformer hum, all tied to the UK grid's 50 Hz (transformers hum at 100 Hz, twice the mains frequency; the clank is tuned to 50 Hz).
-- New Construction generator: a building site by a busy road, with pile driving, jackhammer and car horns (two clashing tones near 400 and 500 Hz, as most car horns are).
+- New Construction generator: a building site by a busy road, with pile driving, jackhammer and occasional car horns (two clashing tones a major third apart, as most car horns are).
 - New Wind generator: gusting air with a faint whistle. New Waves generator: a low wash with waves that swell, break and drain away.
 - Generators regrouped into the three layers of soundscape ecology: Geophony, Biophony and Anthrophony.
 - Net Gain slider: one control from degradation to net gain. A switch sets whether it moves just Birds, Insects, Machine and Construction, or every generator to a preset blend. Construction only comes in over the last quarter towards degradation.

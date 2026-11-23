@@ -1170,7 +1170,7 @@ async function buildNodes() {
   // CONSTRUCTION (anthrophony, root-independent). A building site beside a
   // busy road: bouts of pile driving (a heavy low blow with a ringing steel
   // clang, about one a second), bursts of jackhammer, and car horns. Most car
-  // horns sound two tones together, roughly 400 and 500 Hz, which gives them
+  // horns sound two tones together, a major third apart, which gives them
   // their harsh, clashing edge. Shaped by playConstructionEvent() below.
   const constructionGain = keep(new Tone.Gain(state.volumes.construction / 100));
   const constructionPan  = keep(new Tone.Panner(state.pans.construction)); constructionGain.chain(constructionPan, masterGain);
@@ -1189,10 +1189,10 @@ async function buildNodes() {
   const jackEnv   = keep(new Tone.Gain(0));
   jackNoise.chain(jackBPF, jackRate, jackEnv, constructionGain);
   keep(new Tone.LFO({ frequency: 22, min: 0, max: 1, type: 'square' })).connect(jackRate.gain).start();
-  const hornA   = keep(new Tone.Oscillator({ type: 'square', frequency: 410 }));
-  const hornB   = keep(new Tone.Oscillator({ type: 'square', frequency: 510 }));
+  const hornA   = keep(new Tone.Oscillator({ type: 'square', frequency: 300 }));
+  const hornB   = keep(new Tone.Oscillator({ type: 'square', frequency: 375 }));
   const hornEnv = keep(new Tone.Gain(0));
-  const hornLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 2200 }));
+  const hornLPF = keep(new Tone.Filter({ type: 'lowpass', frequency: 1100 }));
   const hornAmp = keep(new Tone.Gain(0.08));
   const hornPan = keep(new Tone.Panner(0));
   hornA.connect(hornEnv); hornB.connect(hornEnv);
@@ -1559,12 +1559,13 @@ const CONSTRUCTION_EVENTS = {
     return len;
   },
   // Car horns: one blast, or an impatient two or three, from somewhere on
-  // the road; each car's horn is pitched a little differently
+  // the road; each car's horn is pitched a little differently. After a horn
+  // the road stays quiet for 20 to 45 seconds.
   horn(n, t) {
     const f = rnd(0.9, 1.1);
     n.hornPan.pan.setValueAtTime(rnd(-0.8, 0.8), t);
-    n.hornA.frequency.setValueAtTime(410 * f, t);
-    n.hornB.frequency.setValueAtTime(510 * f, t);
+    n.hornA.frequency.setValueAtTime(300 * f, t);
+    n.hornB.frequency.setValueAtTime(375 * f, t);
     let at = t;
     for (let i = rndInt(1, 3); i > 0; i--) {
       const len = rnd(0.15, 0.7);
@@ -1574,13 +1575,13 @@ const CONSTRUCTION_EVENTS = {
       n.hornEnv.gain.linearRampToValueAtTime(0, at + len + 0.03);
       at += len + rnd(0.1, 0.25);
     }
-    return at - t;
+    return at - t + rnd(20, 45);
   }
 };
 
 function playConstructionEvent(n) {
   const r = Math.random();
-  const kind = r < 0.4 ? 'pile' : r < 0.7 ? 'jack' : 'horn';
+  const kind = r < 0.45 ? 'pile' : r < 0.85 ? 'jack' : 'horn';
   const t = Tone.now() + 0.05;
   if (t < constructionBusy[kind]) return;
   constructionBusy[kind] = t + CONSTRUCTION_EVENTS[kind](n, t);
