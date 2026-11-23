@@ -16,7 +16,7 @@ During my MA Creative Practice at the Make Happen Institute I'm developing this 
 
 - **Black and red, on purpose.** The colour scheme preserves night vision, so it can be operated backstage and in darkened installation spaces without dazzling the operator.
 - **Runs in a browser.** No install, so it is easy to deploy on any machine instantly. Works on desktop and mobile, including iOS.
-- **Soundscape layers.** The generators are grouped by the three layers of soundscape ecology: Geophony (Texture, Wind, Waves), Biophony (Birds, Insects, plus field recordings on the sample players) and Anthrophony (Drone, Tones, Rumble, Arpeggio, Pulse, Modem, Static, Oscillators, Machine).
+- **Soundscape layers.** The generators are grouped by the three layers of soundscape ecology: Geophony (Texture, Wind, Waves), Biophony (Birds, Insects, plus field recordings on the sample players) and Anthrophony (Drone, Tones, Rumble, Arpeggio, Pulse, Modem, Static, Oscillators, Machine, Construction).
 
 ## Changelog
 
@@ -27,9 +27,10 @@ During my MA Creative Practice at the Make Happen Institute I'm developing this 
 - New Birds generator, modelled on Humber and Yorkshire species: curlew, redshank, oystercatcher, skylark and blackbird, with a distant bird of the same species that sometimes answers.
 - New Insects generator, modelled on species found in Yorkshire: common field grasshopper, meadow grasshopper and Roesel's bush-cricket.
 - New Machine generator: industrial cycle of marching thud, compactor and clank over a transformer hum, all tied to the UK grid's 50 Hz (transformers hum at 100 Hz, twice the mains frequency; the clank is tuned to 50 Hz).
+- New Construction generator: a building site by a busy road, with pile driving, jackhammer and car horns (two clashing tones near 400 and 500 Hz, as most car horns are).
 - New Wind generator: gusting air with a faint whistle. New Waves generator: a low wash with waves that swell, break and drain away.
 - Generators regrouped into the three layers of soundscape ecology: Geophony, Biophony and Anthrophony.
-- Net Gain slider: one control from degradation to net gain. A switch sets whether it moves just Birds, Insects and Machine, or every generator to a preset blend.
+- Net Gain slider: one control from degradation to net gain. A switch sets whether it moves just Birds, Insects, Machine and Construction, or every generator to a preset blend. Construction only comes in over the last quarter towards degradation.
 
 ### v0.2: GNOME (Pushed to GitHub Pages October 3rd 2026, MA Action 1)
 
